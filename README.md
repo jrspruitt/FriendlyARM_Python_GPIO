@@ -19,27 +19,22 @@ If your system has Python and setuptools, you can use
      * Main gpio class, init with board Config()
 * **fgpio.boards.*.Config()**
      * Board specific configuration
-
 * **fgpio.init_pin(pin, direction, updown)**
      * Initialize pin to use, corrisponds to pinout on GPIO header on board.
      * **pin:** Pin number.
      * **direction:** Input(0) or Output(1).
      * **updown:** Pull Up(2) Down(1) Neither(0), Always 0 for outputs.
-
 * **fgpio.write(pin, value)**
      * Write value to pin.
      * **pin:** Pin number.
      * **value:** Value 1 (high) 0 (low)
-
 * **fgpio.read(pin)**
      * Read pin value, returns Int 1 (high), 0 (low).
      * **pin:** Pin number.
-
 * **fgpio.set_direction(pin, direction)**
      * Set direction of pin.
      * **pin:** Pin number.
      * **direction:** Input(0) or Output(1).
-
 * **fgpio.set_updown(pin, updown)**
      * Set pull up or pull down on pin (Don't use with pin as output).
      * **pin:** Pin number.
