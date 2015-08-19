@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+
 #############################################################################
 # The MIT License (MIT)
 # 
@@ -125,32 +125,32 @@ class GPIO(object):
             self._set_updown(pin, 0)
 
     def _pin_check(self, pin):
-        if self.board.pins[pin]['bank'] not in board.banks:
+        if self.board.pins[pin]['bank'] not in self.board.banks:
             raise Exception('Bad gpio bank.')
 
         if pin not in self.board.pins:
             raise Exception('Bad pin.')
 
     def _read_pin(self, pin):
-        self._set_seek_addr(pin, board.GPIO_DATA_OFFSET)
+        self._set_seek_addr(pin, self.board.GPIO_DATA_OFFSET)
         data = self._mem_read()
         return 0x01 & (data >> self.board.pins[pin]['num'])
 
     def _write_pin(self, pin, value):
-        self._set_seek_addr(pin, board.GPIO_DATA_OFFSET)
+        self._set_seek_addr(pin, self.board.GPIO_DATA_OFFSET)
         self._mem_write(pin, value)
 
     def _set_direction(self, pin, direction):
-        self._set_seek_addr(pin, board.GPIO_CON_OFFSET)
+        self._set_seek_addr(pin, self.board.GPIO_CON_OFFSET)
         self._mem_write2(pin, direction)
 
     def _set_updown(self, pin, updown):
-        self._set_seek_addr(pin, board.GPIO_UPD_OFFSET)
+        self._set_seek_addr(pin, self.board.GPIO_UPD_OFFSET)
         self._mem_write2(pin, updown)
 
     def _set_seek_addr(self, pin, offset_bank):
         bank = self.board.pins[pin]['bank']
-        self.mm.seek(self.base_addr_offset + board.banks[bank] + offset_bank)
+        self.mm.seek(self.base_addr_offset + self.board.banks[bank] + offset_bank)
 
     def _mem_write(self, pin, value):
         pin_num = self.board.pins[pin]['num']
@@ -168,25 +168,4 @@ class GPIO(object):
         ret = struct.unpack('I',  self.mm.read(4))[0]
         self.mm.seek(self.mm.tell()-4)
         return ret
-
-if __name__ == '__main__':
-    from boards import nanopi
-    from time import sleep
-
-    # Initialize GPIO
-    brd_cfg = nanopi.Config()
-    gpio = GPIO(brd_cfg)
-
-    # Initialize pin 40 as output (1).
-    gpio.init_pin(40, 1)
-
-    # Initialize pin 38 as input (0) with pullup (2)
-    gpio.init_pin(38, 0, 2)
-
-    # While pin 38 is high toggle pin 40.
-    value = False
-    while gpio.read(38) != 0:
-        value =  not value
-        gpio.write(40, value)
-        sleep(.5)
 
