@@ -1,5 +1,7 @@
 #PyFA_GPIO#
 
+###Work in progress, interface may change###
+
 Simple Python based interface for GPIO pins on FriendlyARM boards.
 
 **Limitations:**
