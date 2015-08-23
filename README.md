@@ -31,9 +31,9 @@ all pins listed in board config are gpio capable.
      * **pin:** Pin number.
      * **direction:** Input(0) or Output(1).
      * **updown:** Pull Up(2) Down(1) Neither(0), Always 0 for outputs.
-* **gpio_close(pin)
+* **gpio_close(pin)**
      * Close GPIO enabled pin and set to chip reset values.
-* **gpio_close_all()
+* **gpio_close_all()**
      * Close all GPIO enabled pins and set to chip reset values.
 * **gpio_write(pin, value)**
      * Write value to pin.
