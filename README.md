@@ -17,18 +17,24 @@ If your system has Python and setuptools, you can use
      python setup.py install
 
 ##Functions##
-###GPIO###
-all pins listed in board config are gpio capable.
-
+###Init###
 * **fgpio.GPIO(Config())**
      * Main gpio class, init with board Config()
 * **fgpio.boards.*.Config()**
      * Board specific configuration
+
+###GPIO###
+all pins listed in board config are gpio capable.
+
 * **gpio_init(pin, direction, updown)**
      * Initialize pin to use, corrisponds to pinout on GPIO header on board.
      * **pin:** Pin number.
      * **direction:** Input(0) or Output(1).
      * **updown:** Pull Up(2) Down(1) Neither(0), Always 0 for outputs.
+* **gpio_close(pin)
+     * Close GPIO enabled pin and set to chip reset values.
+* **gpio_close_all()
+     * Close all GPIO enabled pins and set to chip reset values.
 * **gpio_write(pin, value)**
      * Write value to pin.
      * **pin:** Pin number.
@@ -54,12 +60,20 @@ board config will show 'pwm' as f2type for pin.
      * **period:** Period in nanoseconds.
      * **duty_cycle:** Duty cycel in nanoseconds.
 *  **pwm_close(pin)**
-     * Close pin, clean up sys/ exports.
+     * Close PWM enabled pin, sys/.../unexport.
      * **pin:** Pin number.
+*  **pwm_close_all()**
+     * Close all PWM enabled pins, sys/.../unexport.
+*  **pwm_get_period(pin)**
+     * Get period of pin in nanoseconds.
+     * **pin:** Pin number.
+     * Returns Int
 *  **pwm_period(pin, period)**
      * Set period of pin.
-     * **pin:** Pin number.
      * **period:** Period in nanoseconds.
+*  **pwm_get_duty_cycle(pin, duty_cycle)**
+     * Get duty cycle of pin in nanoseconds.
+     * Returns Int
 *  **pwm_duty_cycle(pin, duty_cycle)**
      * Set duty cycle of pin.
      * **pin:** Pin number.
