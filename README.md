@@ -71,8 +71,9 @@ board config will show 'pwm' as f2type for pin.
 *  **pwm_period(pin, period)**
      * Set period of pin.
      * **period:** Period in nanoseconds.
-*  **pwm_get_duty_cycle(pin, duty_cycle)**
+*  **pwm_get_duty_cycle(pin)**
      * Get duty cycle of pin in nanoseconds.
+     * **pin:** Pin number.
      * Returns Int
 *  **pwm_duty_cycle(pin, duty_cycle)**
      * Set duty cycle of pin.
