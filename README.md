@@ -42,6 +42,7 @@ all pins listed in board config are gpio capable.
 * **gpio_read(pin)**
      * Read pin value, returns Int 1 (high), 0 (low).
      * **pin:** Pin number.
+     * **Returns:** Int
 * **gpio_direction(pin, direction)**
      * Set direction of pin.
      * **pin:** Pin number.
@@ -67,14 +68,14 @@ board config will show 'pwm' as f2type for pin.
 *  **pwm_get_period(pin)**
      * Get period of pin in nanoseconds.
      * **pin:** Pin number.
-     * Returns Int
+     * **Returns:** Int
 *  **pwm_period(pin, period)**
      * Set period of pin.
      * **period:** Period in nanoseconds.
 *  **pwm_get_duty_cycle(pin)**
      * Get duty cycle of pin in nanoseconds.
      * **pin:** Pin number.
-     * Returns Int
+     * **Returns:** Int
 *  **pwm_duty_cycle(pin, duty_cycle)**
      * Set duty cycle of pin.
      * **pin:** Pin number.
