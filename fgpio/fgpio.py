@@ -177,6 +177,8 @@ class GPIO(object):
         except:
             pass
 
+        # clear old value if any.
+        self._pwm_duty_cycle(pin, 0)
         self._pwm_period(pin, period)
         self._pwm_duty_cycle(pin, duty_cycle)
         self.board.pins[pin]['used'] = self._type_pwm
@@ -370,6 +372,7 @@ class GPIO(object):
             self.board.pins[pin]['used'] = False
 
             try:
+                self._pwm_duty_cycle(pin, 0)
                 self._pwm_enable(pin, 0)
                 self._pwm_writer(self._sys_pwm_unexport, self.board.pins[pin][self._type_pwm]['num'])
             except:
