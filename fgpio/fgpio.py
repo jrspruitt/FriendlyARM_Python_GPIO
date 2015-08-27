@@ -178,7 +178,9 @@ class GPIO(object):
             pass
 
         # clear old value if any.
-        self._pwm_duty_cycle(pin, 0)
+        if self._pwm_get_period(pin) > 0:
+            self._pwm_duty_cycle(pin, 0)
+
         self._pwm_period(pin, period)
         self._pwm_duty_cycle(pin, duty_cycle)
         self.board.pins[pin]['used'] = self._type_pwm
