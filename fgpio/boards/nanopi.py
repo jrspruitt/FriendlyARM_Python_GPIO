@@ -24,35 +24,46 @@
 
 class Config(object):
     def __init__(self):
-        self.MEM_OFFSET        =  0x56000000
-        self.MEM_LENGTH        =  0x100
-        self.GPIO_CON_OFFSET   =  0x00
-        self.GPIO_DATA_OFFSET  =  0x04
-        self.GPIO_UPD_OFFSET   =  0x08
-        self.GPIO_SEL_OFFSET   =  0x0C
+        self.MEM_OFFSET             =  0x56000000
+        self.MEM_LENGTH             =  0x100
+        self.GPIO_CON_OFFSET        =  0x00
+        self.GPIO_DATA_OFFSET       =  0x04
+        self.GPIO_UPD_OFFSET        =  0x08
+        self.GPIO_SEL_OFFSET        =  0x0C
+        self.UPDN_UP                =  1
+        self.UPDN_DOWN              =  0
+        self.UPDN_NONE              =  2
+        self.FUNC_IN                =  0
+        self.FUNC_OUT               =  1
+        self.FUNC_EINT              =  2
+        self.FUNC_PWM               =  2
+        self.FUNC_RESET             =  0
+        self.DATA_RESET             =  0
+        self.UPDN_RESET             =  1
 
-        self.PWMCHIP_ID        =  0
+        self.EINT_CONT_OFFSET       =  0x88
+        self.EINT_CONT_LENGTH       =  0x60
+        self.EINT_EN_OFFSET         =  0xA4
+        self.EINT_PEND_OFFSET       =  0xA8
+        self.EINT_LOW               =  0x00
+        self.EINT_HIGH              =  0x01
+        self.EINT_FALL              =  0x02
+        self.EINT_RISE              =  0x04
+        self.EINT_BOTH              =  0x07
+        self.EINT_RESET             =  0
 
-        self.UPDN_UP           =  1
-        self.UPDN_DOWN         =  0
-        self.UPDN_NONE         =  2
-        self.FUNC_IN           =  0
-        self.FUNC_OUT          =  1
-        self.FUNC_EINT         =  2
-        self.FUNC_PWM          =  2
-        self.FUNC_RESET        =  0
-        self.DATA_RESET        =  0
-        self.UPDN_RESET        =  1
-        self.EINT_RESET        =  0
-        self.EINT_CONT_OFFSET  =  0x88
-        self.EINT_CONT_LENGTH  =  0x60
-        self.EINT_EN_OFFSET    =  0xA4
-        self.EINT_PEND_OFFSET  =  0xA8
-        self.EINT_LOW          =  0x00
-        self.EINT_HIGH         =  0x01
-        self.EINT_FALL         =  0x02
-        self.EINT_RISE         =  0x04
-        self.EINT_BOTH         =  0x07
+        self.PWMCHIP_ID             =  0
+        self.PWM_OFFSET             =  0x51000000
+        self.PWM_LENGTH             =  0x44
+        self.PWM_TCFG0_OFFSET       =  0x00
+        self.PWM_TCFG1_OFFSET       =  0x04
+        self.PWM_TCON_OFFSET        =  0x08
+        self.PWM_BUFFER_OFFSET      =  0x0C
+        self.PWM_BUFFER_LENGTH      =  0x0C
+        self.PWM_CLK                =  66666666
+        self.PWM_TCON_RESET         =  0x00
+        self.PWM_BUFF_RESET         =  0x00
+        self.PWM_TCFG_RESET         =  0x00
 
         self.pins = {7:{'bank':'GPF', 'gpio':{'num': 1 }},                         # EINT1/GPF1   (7)  161,
                     11:{'bank':'GPF', 'gpio':{'num': 2 }},                         # EINT2/GPF2   (11) 162,
