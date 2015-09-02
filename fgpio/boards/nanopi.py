@@ -64,6 +64,7 @@ class Config(object):
         self.PWM_TCON_RESET         =  0x00
         self.PWM_BUFF_RESET         =  0x00
         self.PWM_TCFG_RESET         =  0x00
+        self.PWM_DIVIDERS           =  [2, 4, 8, 16]
 
         self.pins = {7:{'bank':'GPF', 'gpio':{'num': 1 }},                         # EINT1/GPF1   (7)  161,
                     11:{'bank':'GPF', 'gpio':{'num': 2 }},                         # EINT2/GPF2   (11) 162,

@@ -24,6 +24,7 @@
 #############################################################################
 
 import os
+import math
 import mmap
 import struct
 from time import sleep
@@ -58,7 +59,7 @@ class GPIO(object):
             self.board.pins[pin]['used'] = False
 
         self._mm = None
-        self._mmpwm = None
+        self._pwm_mm = None
         self._mem_base_addr = (self.board.MEM_OFFSET & ~(mmap.PAGESIZE-1))
         self._mem_base_addr_offset = self.board.MEM_OFFSET - self._mem_base_addr
 
@@ -224,7 +225,7 @@ class GPIO(object):
         if self._mm == None:
             self._mem_open()
 
-        if self._mmpwm == None:
+        if self._pwm_mm == None:
             self._pwm_mem_open()
 
         self._gpio_function(pin, self.board.FUNC_PWM)
@@ -263,10 +264,12 @@ class GPIO(object):
         Arguments:
             pin:Int         Pin number of TOUTx on board connector.
             period:Int      Period time in ns.
+
+        Returns:Int         Error in ns
         """
 
         self._pin_check(pin, self._type_pwm)
-        self._pwm_period(pin, period)
+        return self._pwm_period(pin, period)
 
     def pwm_get_duty_cycle(self, pin):
         """Get duty cycle value.
@@ -337,6 +340,9 @@ class GPIO(object):
     def _int_check(self, num, msg='argument'):
         if not isinstance(num, int):
             self._value_error('%s is not an integer. (%s)' % (msg.capitalize(), num))
+
+        if not num >= 0:
+            self._value_error('%s is not greater than 0.')
 
     def _pin_available(self, pin, ptype):
         if pin not in self.board.pins:
@@ -479,7 +485,7 @@ class GPIO(object):
 
     def _mem_close(self):
         for pin in self.board.pins:
-            if self.board.pins[pin]['used'] in [self._type_gpio, self._type_eint]:
+            if self.board.pins[pin]['used'] is not False:
                 break
         else:
             self._mm.close()
@@ -495,15 +501,22 @@ class GPIO(object):
 
     def _pwm_close(self, pin):
         if self.board.pins[pin]['used'] in [self._type_pwm]:
-            self._pwm_disable(pin)        
-            self._pwm_prescaler(pin, self.board.PWM_TCFG_RESET)
+            self._pwm_disable(pin)
             self._pwm_divider(pin, self.board.PWM_TCFG_RESET)
             self._pwm_tcon(pin, self.board.PWM_TCON_RESET)
             self._pwm_compare(pin, self.board.PWM_BUFF_RESET)
             self._pwm_counter(pin, self.board.PWM_BUFF_RESET)
-            self._mmpwm = None
             self._gpio_function(pin, self.board.FUNC_RESET)
-            self._mem_close()
+            self.board.pins[pin]['used'] = False
+
+            for pin in self.board.pins:
+                if self.board.pins[pin]['used'] == self._type_pwm:
+                    break
+            else:
+                self._mem_close()
+                self._pwm_prescaler(pin, self.board.PWM_TCFG_RESET)
+                self._pwm_mm.close()
+                self._pwm_mm = None
 
     def _pwm_enable(self, pin):
         self._pwm_tcon(pin, 10)
@@ -512,72 +525,71 @@ class GPIO(object):
     def _pwm_disable(self, pin):
         self._pwm_tcon(pin, 0)
 
-    def _pwm_period(self, pin, period):
-        period_f = 1 / (period / 1000000000.0)
-        div_idx = 0
-        dividers = [2, 4, 8, 16]
+    def _pwm_period(self, pin, period_ns):
+        div_idx = len(self.board.PWM_DIVIDERS)-1
         pre_cnt = 255
 
-        clk_f_min = float(self.board.PWM_CLK) / 256 / dividers[3] / 65535
-        clk_f_max = float(self.board.PWM_CLK) / 1 / dividers[0]
+        clk_s_max = 1 / (float(self.board.PWM_CLK) / 256 / self.board.PWM_DIVIDERS[len(self.board.PWM_DIVIDERS)-1])
+        clk_ns_max = (clk_s_max * 65535) * 1000000000.0
+        clk_s_min = 1 / (float(self.board.PWM_CLK) / self.board.PWM_DIVIDERS[0])
+        clk_ns_min = clk_s_min * 1000000000.0
 
-        if clk_f_max < period_f or clk_f_min > period_f:
-            self._value_error('Period out of range.')
+        if clk_ns_max < period_ns or clk_ns_min > period_ns:
+            self._value_error('Period out of range. max %sns min %sns' % (int(clk_ns_max), int(math.ceil(clk_ns_min))))
 
-        prescale = None
-        divider = None
-        counter = None
+        best = {'diff':65535, 'counter':None, 'prescaler':None, 'divider':None}
 
         while pre_cnt >= 0:
-            fmin = self.board.PWM_CLK / (pre_cnt + 1) / dividers[div_idx] / 65535
-            fmax = self.board.PWM_CLK / (pre_cnt + 1) / dividers[div_idx]
+            clk_s_max = 1 / (float(self.board.PWM_CLK) / (pre_cnt + 1) / self.board.PWM_DIVIDERS[div_idx])
+            clk_ns_max = (clk_s_max * 65535) * 1000000000.0
+            clk_s_min = 1 / (float(self.board.PWM_CLK) / (pre_cnt + 1) / self.board.PWM_DIVIDERS[div_idx])
+            clk_ns_min = clk_s_min * 1000000000.0
 
-            if period_f <= fmax and period_f >= fmin:
-                counter_fl = fmax / period_f
-                counter = int(counter_fl)
-                if counter <= 65535:
-                    prescale = pre_cnt
-                    divider = dividers[div_idx]
-                    break
+            if period_ns <= clk_ns_max and period_ns >= clk_ns_min:
+                counter_fl =  (period_ns / clk_ns_max ) * 65535
+                counter = int(round(counter_fl))
+                diff = abs(counter - counter_fl)
 
+                if diff < best['diff']:
+                    best['diff'] = diff
+                    best['counter'] = counter
+                    best['prescaler'] = pre_cnt
+                    best['divider'] = div_idx
+ 
             pre_cnt -= 1
 
-            if pre_cnt < 1 and div_idx < len(dividers):
+            if pre_cnt < 0 and div_idx > 0:
                 pre_cnt = 255
-                div_idx += 1
+                div_idx -= 1
 
-        if prescale is None or divider is None or counter is None:
+        if best['counter'] is None:
             self._value_error('Period configuration could not be determined.')
 
-        if divider == 2:
-            divider = 0
-        elif divider == 4:
-            divider = 1
-        elif divider == 8:
-            divider = 2
-        elif divider == 16:
-            divider = 3
+        self._pwm_counter(pin, best['counter'])
+        self._pwm_prescaler(pin, best['prescaler'])
+        self._pwm_divider(pin, best['divider'])
 
-        self._pwm_prescaler(pin, prescale)
-        self._pwm_divider(pin, divider)
-        self._pwm_counter(pin, counter)
+        clk_s_err = 1 / (float(self.board.PWM_CLK) / (best['prescaler'] + 1) / self.board.PWM_DIVIDERS[best['divider']])
+        return ((clk_s_err * best['counter']) * 1000000000.0) - period_ns
+
 
     def _pwm_get_period(self, pin):
         counter = self._pwm_get_counter(pin)
         return int(round(self._pwm_freq_seconds(pin) * counter * 1000000000))
 
-    def _pwm_duty_cycle(self, pin, duty_cycle):
-        duty_cycle_s = duty_cycle / 1000000000.0
+    def _pwm_duty_cycle(self, pin, duty_cycle_ns):
         counter = self._pwm_get_counter(pin)
         freq_s = self._pwm_freq_seconds(pin)
-        period_s = counter * freq_s
-        compare = 1 / (freq_s * duty_cycle_s)
+        freq_ns = freq_s * 1000000000.0
+        period_ns = counter * freq_s * 1000000000.0
+        compare = int(round(duty_cycle_ns / freq_ns))
 
-        if period_s < duty_cycle_s:
+        if period_ns < duty_cycle_ns:
             self._value_error('Duty cycle must be shorter than period.')
 
-        compare = duty_cycle_s / freq_s
-        self._pwm_compare(pin, int(compare))
+        self._pwm_compare(pin, compare)
+
+        return ((compare * freq_s) * 1000000000) - duty_cycle_ns
 
     def _pwm_get_duty_cycle(self, pin):
         compare = self._pwm_get_compare(pin)
@@ -587,14 +599,10 @@ class GPIO(object):
         prescaler = self._pwm_get_prescaler(pin)
         divider = self._pwm_get_divider(pin)
 
-        if divider == 0:
-            divider = 2
-        elif divider == 1:
-            divider = 4
-        elif divider == 2:
-            divider = 8
-        elif divider == 3:
-            divider = 16
+        for d in self.board.PWM_DIVIDERS:
+            if self.board.PWM_DIVIDERS.index(d) == divider:
+                divider = d
+                break
 
         return 1 / round(self.board.PWM_CLK / (prescaler + 1) / divider)
 
@@ -603,7 +611,7 @@ class GPIO(object):
         offset = self.board.PWM_BUFFER_OFFSET + (pin_num * self.board.PWM_BUFFER_LENGTH)
         self._pwm_mem_seek_addr(offset)
         data = self._pwm_mem_read()
-        data = (data & ~(65535 << (pin_num * 4))) | ((counter & 65535) << (pin_num * 4))
+        data = (data & ~(0xFFFF)) | (counter & 0xFFFF)
         self._pwm_mem_write(data)
 
     def _pwm_get_counter(self, pin):
@@ -611,14 +619,14 @@ class GPIO(object):
         offset = self.board.PWM_BUFFER_OFFSET + (pin_num * self.board.PWM_BUFFER_LENGTH)
         self._pwm_mem_seek_addr(offset)
         data = self._pwm_mem_read()
-        return 65535 & (data >> (pin_num * 4))
+        return 0xFFFF & data
 
     def _pwm_compare(self, pin, compare):
         pin_num = self.board.pins[pin][self._type_pwm]['num']
         offset = self.board.PWM_BUFFER_OFFSET + (pin_num * self.board.PWM_BUFFER_LENGTH)
         self._pwm_mem_seek_addr(offset + 4)
         data = self._pwm_mem_read()
-        data = (data & ~(65535 << (pin_num * 4))) | ((compare & 65535) << (pin_num * 4))
+        data = (data & ~(0xFFFF)) | (compare & 0xFFFF)
         self._pwm_mem_write(data)
 
     def _pwm_get_compare(self, pin):
@@ -626,26 +634,26 @@ class GPIO(object):
         offset = self.board.PWM_BUFFER_OFFSET + (pin_num * self.board.PWM_BUFFER_LENGTH)
         self._pwm_mem_seek_addr(offset + 4)
         data = self._pwm_mem_read()
-        return 65535 & (data >> (pin_num * 4))
+        return 0xFFFF & data
 
     def _pwm_prescaler(self, pin, value):
         pin_offset = (self.board.pins[pin][self._type_pwm]['num'] / 2)
-        self._pwm_mem_seek_addr(self.board.PWM_TCFG0_OFFSET + pin_offset)
+        self._pwm_mem_seek_addr(self.board.PWM_TCFG0_OFFSET)
         data = self._pwm_mem_read()
-        data = (data & ~(255 << pin_offset)) | ((value & 255) << pin_offset)
+        data = (data & ~0xFF) | (value & 0xFF)
         self._pwm_mem_write(data)
 
     def _pwm_get_prescaler(self, pin):
         pin_offset = (self.board.pins[pin][self._type_pwm]['num'] / 2)
-        self._pwm_mem_seek_addr(self.board.PWM_TCFG0_OFFSET + pin_offset)
+        self._pwm_mem_seek_addr(self.board.PWM_TCFG0_OFFSET)
         data = self._pwm_mem_read()
-        return 0xFF & ( data >> pin_offset)
+        return 0xFF & data
 
     def _pwm_divider(self, pin, value):
         pin_num = self.board.pins[pin][self._type_pwm]['num']
         self._pwm_mem_seek_addr(self.board.PWM_TCFG1_OFFSET)
         data = self._pwm_mem_read()
-        data = (data & ~(15 << (pin_num * 4))) | ((value & 15) << (pin_num * 4))
+        data = (data & ~(0x0F << (pin_num * 4))) | ((value & 0x0F) << (pin_num * 4))
         self._pwm_mem_write(data)
 
     def _pwm_get_divider(self, pin):
@@ -656,26 +664,26 @@ class GPIO(object):
 
     def _pwm_tcon(self, pin, value):
         pin_num = self.board.pins[pin][self._type_pwm]['num']
-        self._pwm_mem_seek_addr(self.board.PWM_TCON_OFFSET + pin_num)
+        self._pwm_mem_seek_addr(self.board.PWM_TCON_OFFSET)
         data = self._pwm_mem_read()
-        data = (data & ~(15 << (pin_num * 8))) | ((value & 15) << (pin_num * 8))
+        data = (data & ~(0x0F << (pin_num * 8))) | ((value & 0x0F) << (pin_num * 8))
         self._pwm_mem_write(data)
 
 
     def _pwm_mem_open(self):
         f = os.open('/dev/mem', os.O_RDWR | os.O_SYNC)
-        self._mmpwm = mmap.mmap(f, self.board.PWM_LENGTH,
+        self._pwm_mm = mmap.mmap(f, self.board.PWM_LENGTH,
                             mmap.MAP_SHARED,
                             mmap.PROT_READ | mmap.PROT_WRITE,
                             offset=self._pwm_mem_base_addr)
 
     def _pwm_mem_seek_addr(self, offset):
-        self._mmpwm.seek(self._pwm_mem_base_addr_offset + offset)
+        self._pwm_mm.seek(self._pwm_mem_base_addr_offset + offset)
 
     def _pwm_mem_read(self):
-        ret = struct.unpack('I',  self._mmpwm.read(4))[0]
-        self._mmpwm.seek(self._mmpwm.tell()-4)
+        ret = struct.unpack('I',  self._pwm_mm.read(4))[0]
+        self._pwm_mm.seek(self._pwm_mm.tell()-4)
         return ret
 
     def _pwm_mem_write(self, data):
-        self._mmpwm.write(struct.pack('I', data))
+        self._pwm_mm.write(struct.pack('I', data))
