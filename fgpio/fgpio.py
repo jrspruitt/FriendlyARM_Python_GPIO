@@ -315,21 +315,41 @@ class GPIO(object):
         """Direct access to counter TCNTBn register."""
         self._pwm_counter(pin, value)
 
+    def pwm_get_counter(self, pin):
+        """Direct access to counter TCNTBn register."""
+        return self._pwm_get_counter(pin)
+
     def pwm_compare(self, pin, value):
         """Direct access to compare TCMPBn register."""
         self._pwm_compare(pin, value)
+
+    def pwm_get_compare(self, pin):
+        """Direct access to compare TCMPBn register."""
+        return self._pwm_get_compare(pin)
 
     def pwm_prescaler(pin, value):
         """Direct access to prescaler TCFG0 register."""
         self._pwm_prescaler(pin, value)
 
+    def pwm_get_prescaler(pin):
+        """Direct access to prescaler TCFG0 register."""
+        return self._pwm_get_prescaler(pin)
+
     def pwm_divider(pin, value):
         """Direct access to divider TCFG1 register."""
         self._pwm_divider(pin, value)
 
+    def pwm_get_divider(pin):
+        """Direct access to divider TCFG1 register."""
+        return self._pwm_get_divider(pin)
+
     def pwm_tcon(pin, value):
         """Direct access to TCON register."""
         self._pwm_tcon(pin, value)
+
+    def pwm_get_tcon(pin):
+        """Direct access to TCON register."""
+        return self._pwm_get_tcon(pin)
 
     def _exception(self, msg):
         raise Exception('fgpio: %s' % msg)
@@ -509,8 +529,8 @@ class GPIO(object):
             self._gpio_function(pin, self.board.FUNC_RESET)
             self.board.pins[pin]['used'] = False
 
-            for pin in self.board.pins:
-                if self.board.pins[pin]['used'] == self._type_pwm:
+            for ppin in self.board.pins:
+                if self.board.pins[ppin]['used'] == self._type_pwm:
                     break
             else:
                 self._mem_close()
@@ -640,7 +660,7 @@ class GPIO(object):
         pin_offset = (self.board.pins[pin][self._type_pwm]['num'] / 2)
         self._pwm_mem_seek_addr(self.board.PWM_TCFG0_OFFSET)
         data = self._pwm_mem_read()
-        data = (data & ~0xFF) | (value & 0xFF)
+        data = (data & ~(0xFF)) | (value & 0xFF)
         self._pwm_mem_write(data)
 
     def _pwm_get_prescaler(self, pin):
@@ -668,6 +688,12 @@ class GPIO(object):
         data = self._pwm_mem_read()
         data = (data & ~(0x0F << (pin_num * 8))) | ((value & 0x0F) << (pin_num * 8))
         self._pwm_mem_write(data)
+
+    def _pwm_get_tcon(self, pin, value):
+        pin_num = self.board.pins[pin][self._type_pwm]['num']
+        self._pwm_mem_seek_addr(self.board.PWM_TCON_OFFSET)
+        data = self._pwm_mem_read()
+        return 0x0F & (data >> (pin_num * 8))
 
 
     def _pwm_mem_open(self):
