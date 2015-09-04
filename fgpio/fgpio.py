@@ -195,7 +195,7 @@ class GPIO(object):
         self._mem_close()
 
     def eint_event(self, pin):
-        """Poll for event trigger.
+        """Check if event triggered.
 
         Returns:Int 0 for False 1 for True.
         """
