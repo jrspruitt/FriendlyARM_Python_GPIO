@@ -154,14 +154,14 @@ class GPIO(object):
         self._pin_check(pin, self._type_gpio)
         self._gpio_updown(pin, updown)
 
-    def eint_init(self, pin, trigger, func=None):
+    def eint_init(self, pin, trigger):
         """ Configure interrupt pin.
 
         Arguments:
             pin:Int         Pin number of board connector.
             trigger:Str     Trigger low, high, rising, falling, or both
-            func:func       Callback function.
         """
+
         self._pin_available(pin, self._type_eint)
 
         if self._mm == None:
@@ -454,8 +454,9 @@ class GPIO(object):
         self._mem_write(data)
 
     def _eint_close(self, pin):
-        self._eint_control(pin, self.board.EINT_RESET)
-        self._gpio_close(pin)
+        if self.board.pins[pin]['used'] == self._type_eint:
+            self._eint_control(pin, self.board.EINT_RESET)
+            self._gpio_close(pin)
 
     def _eint_trigger(self, pin, trigger):
         if trigger == 'low':
