@@ -24,7 +24,7 @@ If your system has Python and setuptools, you can use
      * Board specific configuration
 
 ###GPIO###
-all pins listed in board config are gpio capable.
+All pins listed in board config are gpio capable.
 
 * **gpio_init(pin, direction, updown)**
      * Initialize pin to use, corrisponds to pinout on GPIO header on board.
@@ -53,7 +53,7 @@ all pins listed in board config are gpio capable.
      * **updown:** Pull Up(2) Down(1) Neither(0), Always use 0 for outputs.
 
 ###PWM###
-board config will show 'pwm' as f2type for pin.
+Board config will show 'pwm' in pin config section. On NanoPi TOUT0 and TOUT1 share prescaler value.
 
 *  **pwm_init(pin, period, duty_cycle)**
      * Initialize pin as PWM.
@@ -71,6 +71,7 @@ board config will show 'pwm' as f2type for pin.
      * **Returns:** Int
 *  **pwm_period(pin, period)**
      * Set period of pin.
+     * This can cause blocking issues with PyQt if used too often.
      * **period:** Period in nanoseconds.
 *  **pwm_get_duty_cycle(pin)**
      * Get duty cycle of pin in nanoseconds.
@@ -79,13 +80,32 @@ board config will show 'pwm' as f2type for pin.
 *  **pwm_duty_cycle(pin, duty_cycle)**
      * Set duty cycle of pin.
      * **pin:** Pin number.
-     * **duty_cycle:** Duty cycel in nanoseconds.
+     * **duty_cycle:** Duty cycle in nanoseconds.
 *  **pwm_start(pin)**
      * Start PWM output on pin.
      * **pin:** Pin number.
 *  **pwm_stop(pin)**
      * Stop PWM output on pin.
      * **pin:** Pin number.
+
+###PWM Direct###
+These functions are for setting the PWM registers manually, you will need to set _gpio_function(2) For the NanoPi the equation for the Timer clock frequency is 66666666/(prescaler+1)/divider. Prescaler is 0-255 and divider is 2,4,8, or 16, bit values 0, 1, 2, 3 respectively. Know what you are doing warning.
+
+*  **pwm_get_counter(pin)**
+     * **Returns:** Int
+*  **pwm_counter(pin, value)**
+*  **pwm_get_compare(pin)**
+     * **Returns:** Int
+*  **pwm_compare(pin, value)**
+*  **pwm_get_prescaler(pin)**
+     * **Returns:** Int
+*  **pwm_prescaler(pin, value)**
+*  **pwm_get_divider(pin)**
+     * **Returns:** Int
+*  **pwm_divider(pin, value)**
+*  **pwm_get_tcon(pin)**
+     * **Returns:** Int
+*  **pwm_tcon(pin, value)**
 
 ##Example Code##
 Sample script toggles pin 40 until pin 38 is pulled low and then exits.
