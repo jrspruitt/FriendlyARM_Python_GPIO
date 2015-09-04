@@ -1,13 +1,14 @@
 #PyFA_GPIO#
 
-###Work in progress, interface may change###
+###Work in progress###
 
 Simple Python based interface for GPIO pins on FriendlyARM boards.
 
 **Limitations:**
 
-* 1kHz seems about the max toggle speed on 400 MHz s3c2451.
-* Reaction time fluctuates due to Linux scheduling.
+* GPIO 1kHz seems about the max toggle speed on 400 MHz s3c2451.
+* GPIO reaction time fluctuates due to Linux scheduling.
+* PWM period is about 4 seconds to 31ns
 
 ##Install##
 You can use the package directly in your project or,
