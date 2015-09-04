@@ -20,6 +20,7 @@ If your system has Python and setuptools, you can use
 ###Init###
 * **fgpio.GPIO(Config())**
      * Main gpio class, init with board Config()
+     * GPIO, PWM, and EINT functions are all in this class.
 * **fgpio.boards.*.Config()**
      * Board specific configuration
 
@@ -73,6 +74,7 @@ Board config will show 'pwm' in pin config section. On NanoPi TOUT0 and TOUT1 sh
      * Set period of pin.
      * This can cause blocking issues with PyQt if used too often.
      * **period:** Period in nanoseconds.
+     * **Returns:** Int difference in ns of actual and requested period.
 *  **pwm_get_duty_cycle(pin)**
      * Get duty cycle of pin in nanoseconds.
      * **pin:** Pin number.
@@ -89,7 +91,7 @@ Board config will show 'pwm' in pin config section. On NanoPi TOUT0 and TOUT1 sh
      * **pin:** Pin number.
 
 ###PWM Direct###
-These functions are for setting the PWM registers manually, you will need to set _gpio_function(2) For the NanoPi the equation for the Timer clock frequency is 66666666/(prescaler+1)/divider. Prescaler is 0-255 and divider is 2,4,8, or 16, bit values 0, 1, 2, 3 respectively. Know what you are doing warning.
+These functions are for setting the PWM registers manually, you will need to set _gpio_function(2). For the NanoPi the equation for the Timer clock frequency is 66666666/(prescaler+1)/divider. Prescaler is 0-255 and divider is 2,4,8, or 16, bit values 0, 1, 2, 3 respectively. Know what you are doing warning.
 
 *  **pwm_get_counter(pin)**
      * **Returns:** Int
@@ -106,6 +108,26 @@ These functions are for setting the PWM registers manually, you will need to set
 *  **pwm_get_tcon(pin)**
      * **Returns:** Int
 *  **pwm_tcon(pin, value)**
+
+###Interrupts EINT###
+Interrupt pins (EINT in config) can have a condition set, high, low, rising, falling or both, which when met on the selected pin eint_event(pin) will return 1 instead of 0. To retrigger run eint_clear(pin). These are best used in a thread.
+
+*  **eint_init(pin, trigger)**
+     * Initialize interrupt on pin.
+     * **pin:** Pin number.
+     * **trigger:** high, low, rising, falling, or both
+*  **eint_close(pin)**
+     * Close interrupt pin.
+     * **pin:** Pin number.
+*  **eint_close_all()**
+     * Close all EINT pins.
+*  **eint_event(self, pin)**
+     * Check if event triggered.
+     * **pin:** Pin number.
+     * **Returns:** Int 1 for triggered 0 for no event.
+*  **eint_clear(self, pin)**
+     * Clear triggered event
+     * **pin:** Pin number.
 
 ##Example Code##
 Sample script toggles pin 40 until pin 38 is pulled low and then exits.
