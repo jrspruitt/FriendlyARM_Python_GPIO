@@ -311,45 +311,45 @@ class GPIO(object):
         self._pin_check(pin, self._type_pwm)
         self._pwm_disable(pin)
 
-    def pwm_counter(self, pin, value):
-        """Direct access to counter TCNTBn register."""
-        self._pwm_counter(pin, value)
-
     def pwm_get_counter(self, pin):
         """Direct access to counter TCNTBn register."""
         return self._pwm_get_counter(pin)
 
-    def pwm_compare(self, pin, value):
-        """Direct access to compare TCMPBn register."""
-        self._pwm_compare(pin, value)
+    def pwm_counter(self, pin, value):
+        """Direct access to counter TCNTBn register."""
+        self._pwm_counter(pin, value)
 
     def pwm_get_compare(self, pin):
         """Direct access to compare TCMPBn register."""
         return self._pwm_get_compare(pin)
 
-    def pwm_prescaler(pin, value):
-        """Direct access to prescaler TCFG0 register."""
-        self._pwm_prescaler(pin, value)
+    def pwm_compare(self, pin, value):
+        """Direct access to compare TCMPBn register."""
+        self._pwm_compare(pin, value)
 
-    def pwm_get_prescaler(pin):
+    def pwm_get_prescaler(self, pin):
         """Direct access to prescaler TCFG0 register."""
         return self._pwm_get_prescaler(pin)
 
-    def pwm_divider(pin, value):
-        """Direct access to divider TCFG1 register."""
-        self._pwm_divider(pin, value)
+    def pwm_prescaler(self, pin, value):
+        """Direct access to prescaler TCFG0 register."""
+        self._pwm_prescaler(pin, value)
 
-    def pwm_get_divider(pin):
+    def pwm_get_divider(self, pin):
         """Direct access to divider TCFG1 register."""
         return self._pwm_get_divider(pin)
 
-    def pwm_tcon(pin, value):
-        """Direct access to TCON register."""
-        self._pwm_tcon(pin, value)
+    def pwm_divider(self, pin, value):
+        """Direct access to divider TCFG1 register."""
+        self._pwm_divider(pin, value)
 
-    def pwm_get_tcon(pin):
+    def pwm_get_tcon(self, pin):
         """Direct access to TCON register."""
         return self._pwm_get_tcon(pin)
+
+    def pwm_tcon(self, pin, value):
+        """Direct access to TCON register."""
+        self._pwm_tcon(pin, value)
 
     def _exception(self, msg):
         raise Exception('fgpio: %s' % msg)
