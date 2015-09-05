@@ -1,4 +1,4 @@
-#PyFA_GPIO#
+#FriendlyARM Python GPIO#
 
 ###Work in progress###
 
