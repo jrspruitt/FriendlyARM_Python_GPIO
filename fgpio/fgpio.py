@@ -346,7 +346,6 @@ class GPIO(object):
 
     def _gpio_close(self, pin):
         if self.board.pins[pin]['used'] in [self._type_gpio, self._type_eint]:
-            print 'closing gpio', pin
             self._gpio_write(pin, self.board.DATA_RESET)
             self._gpio_function(pin, self.board.FUNC_RESET)
             self._gpio_updn(pin, self.board.UPDN_RESET)
@@ -416,7 +415,6 @@ class GPIO(object):
 
     def _eint_close(self, pin):
         if self.board.pins[pin]['used'] == self._type_eint:
-            print 'closing eint', pin
             self._eint_control(pin, self.board.EINT_RESET)
             self._gpio_close(pin)
 
