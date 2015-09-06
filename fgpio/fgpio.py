@@ -59,12 +59,16 @@ class GPIO(object):
             self.board.pins[pin]['used'] = False
 
         self._mm = None
-        self._pwm_mm = None
         self._mem_base_addr = (self.board.MEM_OFFSET & ~(mmap.PAGESIZE-1))
         self._mem_base_addr_offset = self.board.MEM_OFFSET - self._mem_base_addr
 
-        self._pwm_mem_base_addr = (self.board.PWM_OFFSET & ~(mmap.PAGESIZE-1))
-        self._pwm_mem_base_addr_offset = self.board.PWM_OFFSET - self._pwm_mem_base_addr
+        self._sys_pwmchip = '/sys/class/pwm/pwmchip%s' % self.board.PWMCHIP_ID
+        self._sys_pwm_export = os.path.join(self._sys_pwmchip, 'export')
+        self._sys_pwm_unexport = os.path.join(self._sys_pwmchip, 'unexport')
+        self._sys_pwm = os.path.join(self._sys_pwmchip, 'pwm%s')
+        self._sys_pwm_period = os.path.join(self._sys_pwm, 'period')
+        self._sys_pwm_duty_cycle = os.path.join(self._sys_pwm, 'duty_cycle')
+        self._sys_pwm_enable = os.path.join(self._sys_pwm, 'enable')
 
     def gpio_init(self, pin, direction='in', updown='none'):
         """ Initialize a pin for GPIO use.
@@ -209,11 +213,6 @@ class GPIO(object):
 
     def pwm_init(self, pin, period, duty_cycle):
         """ Initialize a pin for PWM use.
-            This will have an unknown amount of error as it tries
-            to guess the values to use to get close to this period
-            and duty cycle. Use direct access functions if higher
-            precision is needed. Observed error of a few uS.
-            
         Arguments:
             pin:Int             Pin number of TOUTx on board connector.
             period:Int          Period time in ns.
@@ -222,20 +221,29 @@ class GPIO(object):
 
         self._pin_available(pin, self._type_pwm)
 
-        if self._mm == None:
-            self._mem_open()
+        if not os.path.exists(self._sys_pwm_export):
+            self._exception('sys PWM path does not exist.')
 
-        if self._pwm_mm == None:
-            self._pwm_mem_open()
 
+        # set pin to alternate function.
         self._gpio_function(pin, self.board.FUNC_PWM)
+
+        # Error if pin is already exported.
+        try:
+            self._sys_write(self._sys_pwm_export, self.board.pins[pin][self._type_pwm]['num'])
+        except:
+            pass
+
+        # clear old value if any.
+        if self._pwm_get_period(pin) > 0:
+            self._pwm_duty_cycle(pin, 0)
+
         self._pwm_period(pin, period)
         self._pwm_duty_cycle(pin, duty_cycle)
         self.board.pins[pin]['used'] = self._type_pwm
 
     def pwm_close(self, pin):
         """ Close PWM pin
-
         Arguments:
         pin:Int             Pin number of TOUTx on board connector.
         """
@@ -249,9 +257,8 @@ class GPIO(object):
         for pin in self.board.pins:
             self._pwm_close(pin)
 
-    def pwm_get_period(self, pin):
+    def pwm_get_period(self, pin, period):
         """ Get the PWM period in nanoseconds.
-
         Returns:Int         Period in nanoseconds.
         """
 
@@ -260,20 +267,16 @@ class GPIO(object):
 
     def pwm_period(self, pin, period):
         """ Set the PWM period in nanoseconds.
-
         Arguments:
             pin:Int         Pin number of TOUTx on board connector.
             period:Int      Period time in ns.
-
-        Returns:Int         Error in ns
         """
 
         self._pin_check(pin, self._type_pwm)
-        return self._pwm_period(pin, period)
+        self._pwm_period(pin, period)
 
     def pwm_get_duty_cycle(self, pin):
         """Get duty cycle value.
-
         Returns:Int     Duty cycle in nanoseconds.
         """
 
@@ -282,7 +285,6 @@ class GPIO(object):
 
     def pwm_duty_cycle(self, pin, duty_cycle):
         """ Set the PWM duty cycle in nanoseconds.
-
         Arguments:
             pin:Int             Pin number of TOUTx on board connector.
             duty_cycle:Int      Duty Cycle in ns.
@@ -293,63 +295,21 @@ class GPIO(object):
 
     def pwm_start(self, pin):
         """ Start the PWM timer
-
         Arguments:
             pin:Int             Pin number of TOUTx on board connector.
         """
 
         self._pin_check(pin, self._type_pwm)
-        self._pwm_enable(pin)
+        self._pwm_enable(pin, 1)
 
     def pwm_stop(self, pin):
         """ Stop the PWM timer
-
         Arguments:
             pin:Int             Pin number of TOUTx on board connector.
         """
 
         self._pin_check(pin, self._type_pwm)
-        self._pwm_disable(pin)
-
-    def pwm_get_counter(self, pin):
-        """Direct access to counter TCNTBn register."""
-        return self._pwm_get_counter(pin)
-
-    def pwm_counter(self, pin, value):
-        """Direct access to counter TCNTBn register."""
-        self._pwm_counter(pin, value)
-
-    def pwm_get_compare(self, pin):
-        """Direct access to compare TCMPBn register."""
-        return self._pwm_get_compare(pin)
-
-    def pwm_compare(self, pin, value):
-        """Direct access to compare TCMPBn register."""
-        self._pwm_compare(pin, value)
-
-    def pwm_get_prescaler(self, pin):
-        """Direct access to prescaler TCFG0 register."""
-        return self._pwm_get_prescaler(pin)
-
-    def pwm_prescaler(self, pin, value):
-        """Direct access to prescaler TCFG0 register."""
-        self._pwm_prescaler(pin, value)
-
-    def pwm_get_divider(self, pin):
-        """Direct access to divider TCFG1 register."""
-        return self._pwm_get_divider(pin)
-
-    def pwm_divider(self, pin, value):
-        """Direct access to divider TCFG1 register."""
-        self._pwm_divider(pin, value)
-
-    def pwm_get_tcon(self, pin):
-        """Direct access to TCON register."""
-        return self._pwm_get_tcon(pin)
-
-    def pwm_tcon(self, pin, value):
-        """Direct access to TCON register."""
-        self._pwm_tcon(pin, value)
+        self._pwm_enable(pin, 0)
 
     def _exception(self, msg):
         raise Exception('fgpio: %s' % msg)
@@ -386,6 +346,7 @@ class GPIO(object):
 
     def _gpio_close(self, pin):
         if self.board.pins[pin]['used'] in [self._type_gpio, self._type_eint]:
+            print 'closing gpio', pin
             self._gpio_write(pin, self.board.DATA_RESET)
             self._gpio_function(pin, self.board.FUNC_RESET)
             self._gpio_updn(pin, self.board.UPDN_RESET)
@@ -455,6 +416,7 @@ class GPIO(object):
 
     def _eint_close(self, pin):
         if self.board.pins[pin]['used'] == self._type_eint:
+            print 'closing eint', pin
             self._eint_control(pin, self.board.EINT_RESET)
             self._gpio_close(pin)
 
@@ -509,8 +471,8 @@ class GPIO(object):
             if self.board.pins[pin]['used'] is not False:
                 break
         else:
-            self._mm.close()
-            self._mm = None
+             self._mm.close()
+             self._mm = None
 
     def _mem_read(self):
         ret = struct.unpack('I',  self._mm.read(4))[0]
@@ -521,196 +483,80 @@ class GPIO(object):
         self._mm.write(struct.pack('I', data))
 
     def _pwm_close(self, pin):
-        if self.board.pins[pin]['used'] in [self._type_pwm]:
-            self._pwm_disable(pin)
-            self._pwm_divider(pin, self.board.PWM_TCFG_RESET)
-            self._pwm_tcon(pin, self.board.PWM_TCON_RESET)
-            self._pwm_compare(pin, self.board.PWM_BUFF_RESET)
-            self._pwm_counter(pin, self.board.PWM_BUFF_RESET)
-            self._gpio_function(pin, self.board.FUNC_RESET)
+        if self.board.pins[pin]['used'] == self._type_pwm:
             self.board.pins[pin]['used'] = False
 
-            for ppin in self.board.pins:
-                if self.board.pins[ppin]['used'] == self._type_pwm:
-                    break
-            else:
-                self._mem_close()
-                self._pwm_prescaler(pin, self.board.PWM_TCFG_RESET)
-                self._pwm_mm.close()
-                self._pwm_mm = None
-
-    def _pwm_enable(self, pin):
-        self._pwm_tcon(pin, 10)
-        self._pwm_tcon(pin, 9)
-
-    def _pwm_disable(self, pin):
-        self._pwm_tcon(pin, 0)
-
-    def _pwm_period(self, pin, period_ns):
-        div_idx = len(self.board.PWM_DIVIDERS)-1
-        pre_cnt = 255
-
-        clk_s_max = 1 / (float(self.board.PWM_CLK) / 256 / self.board.PWM_DIVIDERS[len(self.board.PWM_DIVIDERS)-1])
-        clk_ns_max = (clk_s_max * 65535) * 1000000000.0
-        clk_s_min = 1 / (float(self.board.PWM_CLK) / self.board.PWM_DIVIDERS[0])
-        clk_ns_min = clk_s_min * 1000000000.0
-
-        if clk_ns_max < period_ns or clk_ns_min > period_ns:
-            self._value_error('Period out of range. max %sns min %sns' % (int(clk_ns_max), int(math.ceil(clk_ns_min))))
-
-        best = {'diff':65535, 'counter':None, 'prescaler':None, 'divider':None}
-
-        while pre_cnt >= 0:
-            clk_s_max = 1 / (float(self.board.PWM_CLK) / (pre_cnt + 1) / self.board.PWM_DIVIDERS[div_idx])
-            clk_ns_max = (clk_s_max * 65535) * 1000000000.0
-            clk_s_min = 1 / (float(self.board.PWM_CLK) / (pre_cnt + 1) / self.board.PWM_DIVIDERS[div_idx])
-            clk_ns_min = clk_s_min * 1000000000.0
-
-            if period_ns <= clk_ns_max and period_ns >= clk_ns_min:
-                counter_fl =  (period_ns / clk_ns_max ) * 65535
-                counter = int(round(counter_fl))
-                diff = abs(counter - counter_fl)
-
-                if diff < best['diff']:
-                    best['diff'] = diff
-                    best['counter'] = counter
-                    best['prescaler'] = pre_cnt
-                    best['divider'] = div_idx
- 
-            pre_cnt -= 1
-
-            if pre_cnt < 0 and div_idx > 0:
-                pre_cnt = 255
-                div_idx -= 1
-
-        if best['counter'] is None:
-            self._value_error('Period configuration could not be determined.')
-
-        self._pwm_counter(pin, best['counter'])
-        self._pwm_prescaler(pin, best['prescaler'])
-        self._pwm_divider(pin, best['divider'])
-
-        clk_s_err = 1 / (float(self.board.PWM_CLK) / (best['prescaler'] + 1) / self.board.PWM_DIVIDERS[best['divider']])
-        return ((clk_s_err * best['counter']) * 1000000000.0) - period_ns
-
+            try:
+                self._pwm_duty_cycle(pin, 0)
+                self._pwm_enable(pin, 0)
+                self._sys_write(self._sys_pwm_unexport, self.board.pins[pin][self._type_pwm]['num'])
+            except:
+                pass
 
     def _pwm_get_period(self, pin):
-        counter = self._pwm_get_counter(pin)
-        return int(round(self._pwm_freq_seconds(pin) * counter * 1000000000))
+        path = self._sys_pwm_period % self.board.pins[pin][self._type_pwm]['num']
 
-    def _pwm_duty_cycle(self, pin, duty_cycle_ns):
-        counter = self._pwm_get_counter(pin)
-        freq_s = self._pwm_freq_seconds(pin)
-        freq_ns = freq_s * 1000000000.0
-        period_ns = counter * freq_s * 1000000000.0
-        compare = int(round(duty_cycle_ns / freq_ns))
+        if not os.path.exists(path):
+            self._exception('PWM pin %s period path does not exist.' % pin)
 
-        if period_ns < duty_cycle_ns:
-            self._value_error('Duty cycle must be shorter than period.')
+        return self._sys_read(path)
 
-        self._pwm_compare(pin, compare)
+    def _pwm_period(self, pin, period):
+        self._int_check(period, 'period')
 
-        return ((compare * freq_s) * 1000000000) - duty_cycle_ns
+        if period <= 0:
+            self._value_error('PWM period must be greater than 0.')
+
+        path = self._sys_pwm_period % self.board.pins[pin][self._type_pwm]['num']
+
+        if not os.path.exists(path):
+            self._exception('PWM pin %s period path does not exist.' % pin)
+
+        self._sys_write(path, period)
 
     def _pwm_get_duty_cycle(self, pin):
-        compare = self._pwm_get_compare(pin)
-        return int(round(self._pwm_freq_seconds(pin) * compare * 1000000000))
+        path = self._sys_pwm_duty_cycle % self.board.pins[pin][self._type_pwm]['num']
 
-    def _pwm_freq_seconds(self, pin):
-        prescaler = self._pwm_get_prescaler(pin)
-        divider = self._pwm_get_divider(pin)
+        if not os.path.exists(path):
+            self._exception('PWM pin %s duty cycle path does not exist.' % pin)
 
-        for d in self.board.PWM_DIVIDERS:
-            if self.board.PWM_DIVIDERS.index(d) == divider:
-                divider = d
-                break
+        return self._sys_read(path)
 
-        return 1 / round(self.board.PWM_CLK / (prescaler + 1) / divider)
+    def _pwm_duty_cycle(self, pin, duty_cycle):
+        self._int_check(duty_cycle, 'duty cycle')
 
-    def _pwm_counter(self, pin, counter):
-        pin_num = self.board.pins[pin][self._type_pwm]['num']
-        offset = self.board.PWM_BUFFER_OFFSET + (pin_num * self.board.PWM_BUFFER_LENGTH)
-        self._pwm_mem_seek_addr(offset)
-        data = self._pwm_mem_read()
-        data = (data & ~(0xFFFF)) | (counter & 0xFFFF)
-        self._pwm_mem_write(data)
+        if duty_cycle > self._pwm_get_period(pin):
+            self._exception('PWM duty cycle must be less than period.')
 
-    def _pwm_get_counter(self, pin):
-        pin_num = self.board.pins[pin][self._type_pwm]['num']
-        offset = self.board.PWM_BUFFER_OFFSET + (pin_num * self.board.PWM_BUFFER_LENGTH)
-        self._pwm_mem_seek_addr(offset)
-        data = self._pwm_mem_read()
-        return 0xFFFF & data
+        path = self._sys_pwm_duty_cycle % self.board.pins[pin][self._type_pwm]['num']
 
-    def _pwm_compare(self, pin, compare):
-        pin_num = self.board.pins[pin][self._type_pwm]['num']
-        offset = self.board.PWM_BUFFER_OFFSET + (pin_num * self.board.PWM_BUFFER_LENGTH)
-        self._pwm_mem_seek_addr(offset + 4)
-        data = self._pwm_mem_read()
-        data = (data & ~(0xFFFF)) | (compare & 0xFFFF)
-        self._pwm_mem_write(data)
+        if not os.path.exists(path):
+            self._exception('PWM pin %s duty cycle path does not exist.' % pin)
 
-    def _pwm_get_compare(self, pin):
-        pin_num = self.board.pins[pin][self._type_pwm]['num']
-        offset = self.board.PWM_BUFFER_OFFSET + (pin_num * self.board.PWM_BUFFER_LENGTH)
-        self._pwm_mem_seek_addr(offset + 4)
-        data = self._pwm_mem_read()
-        return 0xFFFF & data
+        self._sys_write(path, duty_cycle)
 
-    def _pwm_prescaler(self, pin, value):
-        pin_offset = (self.board.pins[pin][self._type_pwm]['num'] / 2)
-        self._pwm_mem_seek_addr(self.board.PWM_TCFG0_OFFSET)
-        data = self._pwm_mem_read()
-        data = (data & ~(0xFF)) | (value & 0xFF)
-        self._pwm_mem_write(data)
+    def _pwm_enable(self, pin, onoff):
+        path = self._sys_pwm_enable % self.board.pins[pin][self._type_pwm]['num']
 
-    def _pwm_get_prescaler(self, pin):
-        pin_offset = (self.board.pins[pin][self._type_pwm]['num'] / 2)
-        self._pwm_mem_seek_addr(self.board.PWM_TCFG0_OFFSET)
-        data = self._pwm_mem_read()
-        return 0xFF & data
+        if not os.path.exists(path):
+            self._exception('PWM pin %s enable path does not exist.' % pin)
 
-    def _pwm_divider(self, pin, value):
-        pin_num = self.board.pins[pin][self._type_pwm]['num']
-        self._pwm_mem_seek_addr(self.board.PWM_TCFG1_OFFSET)
-        data = self._pwm_mem_read()
-        data = (data & ~(0x0F << (pin_num * 4))) | ((value & 0x0F) << (pin_num * 4))
-        self._pwm_mem_write(data)
+        self._sys_write(path, onoff)
 
-    def _pwm_get_divider(self, pin):
-        pin_num = self.board.pins[pin][self._type_pwm]['num']
-        self._pwm_mem_seek_addr(self.board.PWM_TCFG1_OFFSET)
-        data = self._pwm_mem_read()
-        return 0x0F & (data >> (pin_num * 4))
+    def _sys_write(self, path, value):
+        if not os.path.exists(path):
+            self._exception('Sys file does not exist. %s' % path)
 
-    def _pwm_tcon(self, pin, value):
-        pin_num = self.board.pins[pin][self._type_pwm]['num']
-        self._pwm_mem_seek_addr(self.board.PWM_TCON_OFFSET)
-        data = self._pwm_mem_read()
-        data = (data & ~(0x0F << (pin_num * 8))) | ((value & 0x0F) << (pin_num * 8))
-        self._pwm_mem_write(data)
+        with open(path, 'w') as f:
+            f.write('%s' % value)
 
-    def _pwm_get_tcon(self, pin, value):
-        pin_num = self.board.pins[pin][self._type_pwm]['num']
-        self._pwm_mem_seek_addr(self.board.PWM_TCON_OFFSET)
-        data = self._pwm_mem_read()
-        return 0x0F & (data >> (pin_num * 8))
+    def _sys_read(self, path):
+        if not os.path.exists(path):
+            self._exception('Sys file does not exist. %s' % path)
 
+        ret = -1
+        with open(path, 'r') as f:
+            ret = f.read(32)
 
-    def _pwm_mem_open(self):
-        f = os.open('/dev/mem', os.O_RDWR | os.O_SYNC)
-        self._pwm_mm = mmap.mmap(f, self.board.PWM_LENGTH,
-                            mmap.MAP_SHARED,
-                            mmap.PROT_READ | mmap.PROT_WRITE,
-                            offset=self._pwm_mem_base_addr)
+        return int(ret)
 
-    def _pwm_mem_seek_addr(self, offset):
-        self._pwm_mm.seek(self._pwm_mem_base_addr_offset + offset)
-
-    def _pwm_mem_read(self):
-        ret = struct.unpack('I',  self._pwm_mm.read(4))[0]
-        self._pwm_mm.seek(self._pwm_mm.tell()-4)
-        return ret
-
-    def _pwm_mem_write(self, data):
-        self._pwm_mm.write(struct.pack('I', data))

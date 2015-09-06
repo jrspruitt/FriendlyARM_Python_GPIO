@@ -53,18 +53,6 @@ class Config(object):
         self.EINT_RESET             =  0
 
         self.PWMCHIP_ID             =  0
-        self.PWM_OFFSET             =  0x51000000
-        self.PWM_LENGTH             =  0x44
-        self.PWM_TCFG0_OFFSET       =  0x00
-        self.PWM_TCFG1_OFFSET       =  0x04
-        self.PWM_TCON_OFFSET        =  0x08
-        self.PWM_BUFFER_OFFSET      =  0x0C
-        self.PWM_BUFFER_LENGTH      =  0x0C
-        self.PWM_CLK                =  66666666
-        self.PWM_TCON_RESET         =  0x00
-        self.PWM_BUFF_RESET         =  0x00
-        self.PWM_TCFG_RESET         =  0x00
-        self.PWM_DIVIDERS           =  [2, 4, 8, 16]
 
         self.pins = {7:{'bank':'GPF', 'gpio':{'num': 1 }},                         # EINT1/GPF1   (7)  161,
                     11:{'bank':'GPF', 'gpio':{'num': 2 }},                         # EINT2/GPF2   (11) 162,
