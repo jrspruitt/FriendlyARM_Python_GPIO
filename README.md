@@ -1,7 +1,5 @@
 #FriendlyARM Python GPIO#
 
-###Work in progress###
-
 Simple Python based interface for GPIO pins on FriendlyARM boards.
 
 **Limitations:**
