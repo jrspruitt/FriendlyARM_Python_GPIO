@@ -32,8 +32,8 @@ All pins listed in board config are gpio capable.
 * **gpio_init(pin, direction, updown)**
      * Initialize pin to use, corrisponds to pinout on GPIO header on board.
      * **pin:** Pin number.
-     * **direction:** Input(0) or Output(1).
-     * **updown:** Pull Up(2) Down(1) Neither(0), Always 0 for outputs.
+     * **direction:** Input('in') or Output('out').
+     * **updown:** Pull Up('up') Down('down') Neither('both'), Always 0 for outputs.
 * **gpio_close(pin)**
      * Close GPIO enabled pin and set to chip reset values.
 * **gpio_close_all()**
@@ -49,11 +49,11 @@ All pins listed in board config are gpio capable.
 * **gpio_direction(pin, direction)**
      * Set direction of pin.
      * **pin:** Pin number.
-     * **direction:** Input(0) or Output(1).
+     * **direction:** Input('in') or Output('out').
 * **gpio_updown(pin, updown)**
      * Set pull up or pull down on pin (Don't use with pin as output).
      * **pin:** Pin number.
-     * **updown:** Pull Up(2) Down(1) Neither(0), Always use 0 for outputs.
+     * **updown:** Pull Up('up') Down('down') Neither('both'), Always 0 for outputs
 
 ###PWM###
 board config will show 'pwm' in the pin config.
@@ -96,7 +96,7 @@ Interrupt pins (EINT in config) can have a condition set, high, low, rising, fal
 *  **eint_init(pin, trigger)**
      * Initialize interrupt on pin.
      * **pin:** Pin number.
-     * **trigger:** high, low, rising, falling, or both
+     * **trigger:** 'low', 'high', 'rising', 'falling', 'none', or 'both'
 *  **eint_close(pin)**
      * Close interrupt pin.
      * **pin:** Pin number.
