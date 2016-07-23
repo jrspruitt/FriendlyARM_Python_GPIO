@@ -1,6 +1,6 @@
 #FriendlyARM Python GPIO#
 
-Simple Python based interface for GPIO pins on FriendlyARM boards.
+Simple Python based interface for GPIO pins on FriendlyARM NanoPi 1.
 
 **Limitations:**
 
